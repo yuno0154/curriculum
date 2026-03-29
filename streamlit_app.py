@@ -4,7 +4,7 @@ streamlit_app.py — 성취기준 검색 & 편집 (Streamlit Cloud 버전)
 """
 
 import streamlit as st
-import json, re, requests, base64, io
+import json, re, requests, base64, io, os
 from datetime import datetime
 import pandas as pd
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
@@ -113,7 +113,7 @@ def get_subject_name(area, code):
 #  2. 데이터 로드
 # ─────────────────────────────────────────────────────────
 @st.cache_data
-def load_data():
+def load_data(data_size: int = 0):
     with open('data.json', encoding='utf-8') as f:
         return json.load(f)
 
@@ -401,7 +401,7 @@ div[data-testid="stMetricLabel"] { color: #64748b !important; font-weight: 600 !
 if 'edits' not in st.session_state:
     st.session_state.edits = load_edits_remote()
 
-data = load_data()
+data = load_data(data_size=os.path.getsize('data.json'))
 
 def get_stmt(item):
     return st.session_state.edits.get(item['code'], {}).get('statement', item['statement'])
