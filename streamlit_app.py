@@ -4,8 +4,11 @@ streamlit_app.py — 성취기준 검색 & 편집 (Streamlit Cloud 버전)
 """
 
 import streamlit as st
-import json, re, requests, base64
+import json, re, requests, base64, io
 from datetime import datetime
+import pandas as pd
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 # ─────────────────────────────────────────────────────────
 #  1. 과목명 매핑
@@ -277,9 +280,79 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────
-#  6. 메인 탭
+#  6. 엑셀 생성 함수
 # ─────────────────────────────────────────────────────────
-tab_subject, tab_keyword = st.tabs(['📂  과목별 탐색', '🔍  성취기준 검색'])
+def build_excel(items: list, sheet_name: str = '성취기준') -> bytes:
+    """items 목록 → 스타일 적용 엑셀 bytes"""
+    rows = []
+    for d in sorted(items, key=lambda x: x['code']):
+        sn = d['subject'] if d['level'] == '중학교' else get_subject_name(d['subject'], d['code'])
+        rows.append({
+            '학교급':   d['level'],
+            '교과':     d['subject'],
+            '과목':     sn,
+            '성취기준 코드': d['code'],
+            '성취기준':  get_stmt(d),
+        })
+    df = pd.DataFrame(rows)
+
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
+        ws = writer.sheets[sheet_name[:31]]
+
+        # 열 너비
+        col_widths = [10, 14, 22, 20, 80]
+        for i, w in enumerate(col_widths, 1):
+            ws.column_dimensions[get_column_letter(i)].width = w
+
+        # 헤더 스타일
+        hdr_fill = PatternFill('solid', fgColor='4F46E5')
+        hdr_font = Font(color='FFFFFF', bold=True, size=11)
+        hdr_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        thin = Side(style='thin', color='CCCCCC')
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+        for cell in ws[1]:
+            cell.fill   = hdr_fill
+            cell.font   = hdr_font
+            cell.alignment = hdr_align
+            cell.border = border
+        ws.row_dimensions[1].height = 22
+
+        # 데이터 행 스타일
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2), start=2):
+            bg = 'F8F9FF' if row_idx % 2 == 0 else 'FFFFFF'
+            fill = PatternFill('solid', fgColor=bg)
+            for cell in row:
+                cell.fill   = fill
+                cell.border = border
+                cell.alignment = Alignment(vertical='top', wrap_text=(cell.column == 5))
+
+        ws.freeze_panes = 'A2'
+
+    return buf.getvalue()
+
+def dl_btn(label: str, items: list, filename: str, key: str):
+    """다운로드 버튼 (데이터 없으면 disabled)"""
+    if not items:
+        st.caption('데이터 없음')
+        return
+    data_bytes = build_excel(items, filename[:31])
+    st.download_button(
+        label=label,
+        data=data_bytes,
+        file_name=f'{filename}.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        key=key,
+        use_container_width=True,
+    )
+
+# ─────────────────────────────────────────────────────────
+#  7. 메인 탭
+# ─────────────────────────────────────────────────────────
+tab_subject, tab_keyword, tab_download = st.tabs([
+    '📂  과목별 탐색', '🔍  성취기준 검색', '📥  엑셀 다운로드'
+])
 
 # ════════════════════════════════════════════════════════
 #  탭 1: 과목별 탐색
@@ -475,10 +548,92 @@ with tab_keyword:
     else:
         st.info('성취기준 키워드를 입력하면 결과가 나타납니다.')
 
+# ════════════════════════════════════════════════════════
+#  탭 3: 엑셀 다운로드
+# ════════════════════════════════════════════════════════
+with tab_download:
+    st.markdown('#### 📥 성취기준 엑셀 다운로드')
+    st.caption('수정된 성취기준이 있으면 수정본이 반영됩니다.')
+    st.divider()
+
+    # ── 중학교 ─────────────────────────────────────────
+    st.markdown('### 🏫 중학교')
+    mid_data = [d for d in data if d['level'] == '중학교']
+
+    col_m1, col_m2 = st.columns([1, 2])
+    with col_m1:
+        dl_btn('⬇ 중학교 전체', mid_data, '중학교_성취기준_전체', 'dl_mid_all')
+
+    with col_m2:
+        ms_subs = sorted(set(d['subject'] for d in mid_data))
+        ms_sel  = st.selectbox('과목 선택', ms_subs, key='dl_ms_sel',
+                               format_func=lambda s: f'{s}  ({sum(1 for d in mid_data if d["subject"]==s)}개)')
+        ms_items = [d for d in mid_data if d['subject'] == ms_sel]
+        dl_btn(f'⬇ {ms_sel}', ms_items, f'중학교_{ms_sel}_성취기준', 'dl_mid_sub')
+
+    st.divider()
+
+    # ── 고등학교 ────────────────────────────────────────
+    st.markdown('### 🏛 고등학교')
+    high_data = [d for d in data if d['level'] == '고등학교']
+
+    col_h1, col_h2, col_h3 = st.columns(3)
+
+    # 전체
+    with col_h1:
+        st.markdown('**전체**')
+        dl_btn('⬇ 고등학교 전체', high_data, '고등학교_성취기준_전체', 'dl_high_all')
+
+    # 교과별
+    with col_h2:
+        st.markdown('**교과별**')
+        hs_areas = sorted(set(d['subject'] for d in high_data))
+        area_cnt  = {a: sum(1 for d in high_data if d['subject'] == a) for a in hs_areas}
+        hs_area_sel = st.selectbox('교과 선택', hs_areas, key='dl_area_sel',
+                                   format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
+        area_items = [d for d in high_data if d['subject'] == hs_area_sel]
+        dl_btn(f'⬇ {hs_area_sel}', area_items,
+               f'고등학교_{hs_area_sel}_성취기준', 'dl_high_area')
+
+    # 과목별
+    with col_h3:
+        st.markdown('**과목별**')
+        hs_area2 = st.selectbox('교과', hs_areas, key='dl_area2_sel',
+                                format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
+        sub_names2 = sorted(set(
+            get_subject_name(d['subject'], d['code'])
+            for d in high_data if d['subject'] == hs_area2
+        ))
+        sub_cnt2 = {
+            sn: sum(1 for d in high_data
+                    if d['subject'] == hs_area2
+                    and get_subject_name(d['subject'], d['code']) == sn)
+            for sn in sub_names2
+        }
+        hs_sub_sel = st.selectbox('과목', sub_names2, key='dl_sub_sel',
+                                  format_func=lambda s: f'{s}  ({sub_cnt2[s]}개)')
+        sub_items = [d for d in high_data
+                     if d['subject'] == hs_area2
+                     and get_subject_name(d['subject'], d['code']) == hs_sub_sel]
+        dl_btn(f'⬇ {hs_sub_sel}', sub_items,
+               f'고등학교_{hs_area2}_{hs_sub_sel}_성취기준', 'dl_high_sub')
+
 # ─────────────────────────────────────────────────────────
-#  7. 사이드바: 편집 현황
+#  8. 사이드바: 편집 현황 + 빠른 다운로드
 # ─────────────────────────────────────────────────────────
 with st.sidebar:
+    # ── 빠른 다운로드 ───────────────────────────────────
+    st.markdown('### 📥 빠른 다운로드')
+    mid_data_sb  = [d for d in data if d['level'] == '중학교']
+    high_data_sb = [d for d in data if d['level'] == '고등학교']
+
+    dl_btn('⬇ 중학교 전체', mid_data_sb, '중학교_성취기준_전체', 'sb_dl_mid')
+    dl_btn('⬇ 고등학교 전체', high_data_sb, '고등학교_성취기준_전체', 'sb_dl_high')
+    dl_btn('⬇ 전체 (중+고)', data, '2022개정_성취기준_전체', 'sb_dl_all')
+
+    st.divider()
+
+    # ── 수정 현황 ────────────────────────────────────────
     st.markdown('### 📝 수정 현황')
     edited_codes = list(st.session_state.edits.keys())
     if edited_codes:
