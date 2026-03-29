@@ -202,33 +202,46 @@ html, body, .stApp {
 [data-testid="stSidebar"] {
     background: #ffffff !important;
     border-right: 1px solid #e2e8f0 !important;
+    display: block !important;
+    visibility: visible !important;
+    min-width: 240px !important;
 }
 [data-testid="stSidebar"] * { color: #334155 !important; }
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+}
 
 /* ── 헤더 카드 ─────────────────────────────────────── */
 .hero-wrap {
     background: #ffffff;
     border-radius: 20px;
-    padding: 2rem 2.5rem 1.6rem;
+    padding: 1.6rem 2.5rem 1.4rem;
     margin-bottom: 1.8rem;
-    text-align: center;
     border: 1px solid #e2e8f0;
     border-top: 4px solid #6366f1;
     box-shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
+.hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
 .hero-title {
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     font-weight: 900;
     letter-spacing: -0.03em;
     background: linear-gradient(135deg, #4f46e5, #7c3aed);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 0.4rem;
     line-height: 1.25;
+    margin: 0;
 }
 .hero-sub {
     color: #64748b;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 500;
     margin-bottom: 0.75rem;
 }
@@ -242,6 +255,8 @@ html, body, .stApp {
     padding: 0.3rem 1rem;
     border-radius: 20px;
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 .hero-stats {
     display: flex;
@@ -418,9 +433,11 @@ _gc = {g: sum(1 for d in data if LEVEL_GROUP.get(d['level']) == g) for g in GROU
 
 st.markdown(f"""
 <div class="hero-wrap">
-    <div class="hero-title">📚 2022 개정 교육과정<br>성취기준 통합검색 시스템</div>
+    <div class="hero-header">
+        <div class="hero-title">📚 2022 개정 교육과정 성취기준 통합검색 시스템</div>
+        <div class="hero-author">사곡고등학교 수석교사 최연호</div>
+    </div>
     <div class="hero-sub">성취기준 검색 · 과목별 탐색 · 오류 수정</div>
-    <div class="hero-author">사곡고등학교 수석교사 최연호</div>
     <div class="hero-stats">
         <div class="stat-item">학교 교육과정 <b>{_gc['학교 교육과정']:,}</b>건</div>
         <div class="stat-item">계열 선택 과목 <b>{_gc['계열 선택 과목']:,}</b>건</div>
