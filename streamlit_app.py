@@ -148,7 +148,7 @@ def save_edits_remote(edits: dict, commit_msg: str) -> tuple[bool, str]:
 #  3. 페이지 설정
 # ─────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title='성취기준 검색',
+    page_title='성취기준 검색 | 사곡고등학교',
     page_icon='📚',
     layout='wide',
     initial_sidebar_state='collapsed',
@@ -156,12 +156,88 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    .block-container { padding-top: 2rem; max-width: 1100px; }
-    .code-cell { font-family: monospace; font-weight: 700; color: #818cf8;
-                 font-size: 0.85rem; white-space: nowrap; }
-    .stmt-cell { font-size: 0.95rem; line-height: 1.7; }
+    /* 전체 배경 */
+    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
+    .block-container { padding-top: 1.5rem; max-width: 1100px; }
+
+    /* 헤더 */
+    .hero-wrap {
+        background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1));
+        border: 1px solid rgba(99,102,241,0.3);
+        border-radius: 16px;
+        padding: 2rem 2.5rem 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    .hero-title {
+        font-size: 2.2rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, #818cf8, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.4rem;
+        line-height: 1.2;
+    }
+    .hero-sub {
+        color: #94a3b8;
+        font-size: 0.95rem;
+        margin-bottom: 0.6rem;
+    }
+    .hero-author {
+        display: inline-block;
+        background: rgba(99,102,241,0.15);
+        border: 1px solid rgba(99,102,241,0.3);
+        color: #a5b4fc;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.25rem 0.9rem;
+        border-radius: 20px;
+    }
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+    .stat-item {
+        background: rgba(30,41,59,0.6);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        color: #cbd5e1;
+    }
+    .stat-item b { color: #818cf8; }
+
+    /* 목록 */
+    .code-cell {
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        color: #818cf8;
+        font-size: 0.82rem;
+        white-space: nowrap;
+        background: rgba(99,102,241,0.1);
+        padding: 0.2rem 0.5rem;
+        border-radius: 5px;
+        display: inline-block;
+    }
+    .stmt-cell { font-size: 0.95rem; line-height: 1.75; color: #e2e8f0; }
     .edited-mark { color: #f472b6; font-size: 0.75rem; }
     div[data-testid="stExpander"] summary { font-size: 0.85rem; }
+
+    /* 구분선 얇게 */
+    hr { border-color: rgba(255,255,255,0.06) !important; margin: 0.4rem 0 !important; }
+
+    /* 탭 */
+    div[data-baseweb="tab-list"] {
+        background: rgba(30,41,59,0.5);
+        border-radius: 10px;
+        padding: 0.2rem;
+        gap: 0.2rem;
+    }
+    div[data-baseweb="tab"] { border-radius: 8px; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -182,9 +258,23 @@ def is_edited(code):
 # ─────────────────────────────────────────────────────────
 #  5. 헤더
 # ─────────────────────────────────────────────────────────
-st.markdown('# 📚 성취기준 검색')
-st.caption('2022 개정 교육과정 성취기준 통합 검색 시스템')
-st.divider()
+total_mid  = sum(1 for d in data if d['level'] == '중학교')
+total_high = sum(1 for d in data if d['level'] == '고등학교')
+edited_cnt = len(st.session_state.edits)
+
+st.markdown(f"""
+<div class="hero-wrap">
+    <div class="hero-title">📚 2022 개정 교육과정<br>성취기준 통합검색 시스템</div>
+    <div class="hero-sub">성취기준 검색 · 과목별 탐색 · 오류 수정</div>
+    <div class="hero-author">사곡고등학교 수석교사 최연호</div>
+    <div class="hero-stats">
+        <div class="stat-item">중학교 <b>{total_mid}</b>건</div>
+        <div class="stat-item">고등학교 <b>{total_high}</b>건</div>
+        <div class="stat-item">전체 <b>{len(data)}</b>건</div>
+        {'<div class="stat-item">수정됨 <b style=\'color:#f472b6\'>' + str(edited_cnt) + '</b>건</div>' if edited_cnt else ''}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────
 #  6. 메인 탭
