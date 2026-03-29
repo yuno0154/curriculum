@@ -58,6 +58,8 @@ TRACK_SUBJECT_RE = re.compile(r'^(?:진로|융합)\s*선택\s*과목\s*[-–]\s*
 VOC_SUBJECT_RE = re.compile(
     r'^(?:전문\s*공통|전공\s*일반|전공\s*실무)\s*과목\s*[-–]\s*(?:\d+\.\s*)?(.+)$'
 )
+# 전문 공통 과목 헤더 감지 (성공적인 직업 생활, 노동 인권과 산업 안전 보건, 디지털과 직업 생활)
+VOC_COMMON_SUBJECT_RE = re.compile(r'^전문\s*공통\s*과목')
 
 
 def get_classification(filename):
@@ -119,6 +121,7 @@ def extract_from_pdf(path, level, pdf_type):
     seen_codes = set()
 
     current_subject = None
+    current_level = level   # 전문 공통 과목 진입 시 '전문 공통'으로 전환
     in_achievement = False
 
     pending_code = None
@@ -130,7 +133,7 @@ def extract_from_pdf(path, level, pdf_type):
             stmt = clean_statement(' '.join(pending_parts))
             if len(stmt) > 5 and pending_code not in seen_codes:
                 results.append({
-                    'level': level,
+                    'level': current_level,
                     'subject': current_subject,
                     'code': f'[{pending_code}]',
                     'statement': stmt,
@@ -181,15 +184,18 @@ def extract_from_pdf(path, level, pdf_type):
                                 continue
 
                         elif pdf_type == 'vocational':
-                            # "전공 일반 과목 - 1. 미용의 기초" → subject = "미용의 기초"
+                            # "전문 공통 과목 - 1. 성공적인 직업 생활" → level='전문 공통'
+                            # "전공 일반 과목 - 1. 미용의 기초" → level=vocational level
                             m = VOC_SUBJECT_RE.match(line)
                             if m:
                                 new_subject = m.group(1).strip()
-                                if new_subject != current_subject:
+                                new_level = '전문 공통' if VOC_COMMON_SUBJECT_RE.match(line) else level
+                                if new_subject != current_subject or new_level != current_level:
                                     flush_pending()
                                     current_subject = new_subject
+                                    current_level = new_level
                                     in_achievement = False
-                                    log(f"    [{page_idx+1}p] 과목 전환 → {current_subject}")
+                                    log(f"    [{page_idx+1}p] 과목 전환 → {current_subject} [{current_level}]")
                                 continue
 
                         else:  # school
@@ -270,13 +276,18 @@ def main():
     log(f"\n[폴더] {input_dir} ({len(files)}개 파일 발견)\n")
 
     # 기존 data.json 로드 (별책3·4 데이터 보존)
+    # 별책3: 중학교, 선택, 생활 외국어 / 별책4: 고등학교
+    SKIP_LEVELS = {'중학교', '고등학교', '선택', '생활 외국어'}
     final_data = []
     if os.path.exists('data.json'):
         with open('data.json', encoding='utf-8') as f:
             existing = json.load(f)
-        kept = [r for r in existing if r.get('level') in ('중학교', '고등학교')]
+        kept = [r for r in existing if r.get('level') in SKIP_LEVELS]
         final_data.extend(kept)
-        log(f"[기존 데이터] 중학교/고등학교 {len(kept)}건 유지\n")
+        by_level = {}
+        for r in kept:
+            by_level[r['level']] = by_level.get(r['level'], 0) + 1
+        log(f"[기존 데이터] {dict(by_level)} 유지\n")
 
     for idx, filename in enumerate(files):
         # 건너뛸 별책 확인
