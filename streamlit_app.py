@@ -86,15 +86,20 @@ LEVEL_ORDER = [
     '환경·안전·소방', '농림·축산', '수산·해운', '융복합·지식 재산',
 ]
 
+# 화면 표시용 이름 (내부 level key → 표시 문자열)
+LEVEL_DISPLAY = {
+    '생활 외국어': '(선택) 생활 외국어',
+}
+
 LEVEL_GROUP = {
     '중학교': '학교 교육과정', '고등학교': '학교 교육과정',
-    '선택': '선택 과목', '생활 외국어': '선택 과목',
-    '과학 계열': '계열', '체육 계열': '계열', '예술 계열': '계열',
+    '선택': '학교 교육과정', '생활 외국어': '학교 교육과정',
+    '과학 계열': '계열 선택 과목', '체육 계열': '계열 선택 과목', '예술 계열': '계열 선택 과목',
 }
 for _lv in LEVEL_ORDER[7:]:
     LEVEL_GROUP[_lv] = '전문교과'
 
-GROUP_ORDER = ['학교 교육과정', '선택 과목', '계열', '전문교과']
+GROUP_ORDER = ['학교 교육과정', '계열 선택 과목', '전문교과']
 
 def get_code_prefix(code):
     prefix = code.strip('[]').split('-')[0]
@@ -418,8 +423,7 @@ st.markdown(f"""
     <div class="hero-author">사곡고등학교 수석교사 최연호</div>
     <div class="hero-stats">
         <div class="stat-item">학교 교육과정 <b>{_gc['학교 교육과정']:,}</b>건</div>
-        <div class="stat-item">선택 과목 <b>{_gc['선택 과목']:,}</b>건</div>
-        <div class="stat-item">계열 <b>{_gc['계열']:,}</b>건</div>
+        <div class="stat-item">계열 선택 과목 <b>{_gc['계열 선택 과목']:,}</b>건</div>
         <div class="stat-item">전문교과 <b>{_gc['전문교과']:,}</b>건</div>
         <div class="stat-item">전체 <b>{len(data):,}</b>건</div>
         {'<div class="stat-item">수정됨 <b style=\'color:#f472b6\'>' + str(edited_cnt) + '</b>건</div>' if edited_cnt else ''}
@@ -526,7 +530,7 @@ with tab_subject:
         group_levels = [l for l in ordered_levels if LEVEL_GROUP.get(l) == sel_group]
         level = st.selectbox(
             '분류', group_levels, key='tab1_level',
-            format_func=lambda l: f'{l}  ({lv_counts.get(l,0):,}건)'
+            format_func=lambda l: f'{LEVEL_DISPLAY.get(l, l)}  ({lv_counts.get(l,0):,}건)'
         )
 
     items_to_show = []
@@ -554,7 +558,7 @@ with tab_subject:
                 for sn in sub_names
             }
             sub_name = st.selectbox(
-                '과목', sub_names, key='hs_sub',
+                '과목', sub_names, key=f'hs_sub_{area}',
                 format_func=lambda s: f'{s}  ({sub_counts[s]}개)'
             )
         items_to_show = sorted(
@@ -572,14 +576,14 @@ with tab_subject:
         sub_counts_lv = {s: sum(1 for d in data if d['level'] == level and d['subject'] == s)
                          for s in subjects}
         subject = st.selectbox(
-            '과목', subjects, key='other_subject',
+            '과목', subjects, key=f'other_subject_{level}',
             format_func=lambda s: f'{s}  ({sub_counts_lv[s]}개)'
         )
         items_to_show = sorted(
             [d for d in data if d['level'] == level and d['subject'] == subject],
             key=lambda x: x['code']
         )
-        title = f'{level} › {subject}'
+        title = f'{LEVEL_DISPLAY.get(level, level)} › {subject}'
 
     if items_to_show:
         with col_info:
@@ -707,7 +711,7 @@ with tab_keyword:
                 sn  = get_subject_name(d['subject'], d['code'])
                 grp = f'[고등학교] {d["subject"]} › {sn}'
             else:
-                grp = f'[{d["level"]}] {d["subject"]}'
+                grp = f'[{LEVEL_DISPLAY.get(d["level"], d["level"])}] {d["subject"]}'
             groups.setdefault(grp, []).append(d)
 
         for grp_key, items in groups.items():
@@ -763,7 +767,7 @@ with tab_keyword:
             st.warning('일치하는 과목이 없습니다.')
         else:
             for lv, sk, sn, cnt in matched:
-                label = f'[{lv}]  {sn}  —  {cnt}개'
+                label = f'[{LEVEL_DISPLAY.get(lv, lv)}]  {sn}  —  {cnt}개'
                 with st.expander(label, expanded=False):
                     # 해당 과목의 성취기준 목록
                     if lv == '고등학교':
@@ -815,14 +819,16 @@ with tab_download:
         📌 수정된 성취기준이 있으면 수정본이 자동 반영됩니다.
     </div>""", unsafe_allow_html=True)
 
-    dl_tab_school, dl_tab_select, dl_tab_track, dl_tab_voc = st.tabs(
-        ['학교 교육과정', '선택 과목', '계열', '전문교과']
+    dl_tab_school, dl_tab_track, dl_tab_voc = st.tabs(
+        ['학교 교육과정', '계열 선택 과목', '전문교과']
     )
 
     # ── 학교 교육과정 ───────────────────────────────────
     with dl_tab_school:
         mid_data  = [d for d in data if d['level'] == '중학교']
         high_data = [d for d in data if d['level'] == '고등학교']
+        sel_data  = [d for d in data if d['level'] == '선택']
+        lofl_data = [d for d in data if d['level'] == '생활 외국어']
 
         st.markdown('**중학교**')
         with st.container(border=True):
@@ -836,6 +842,34 @@ with tab_download:
                                        format_func=lambda s: f'{s}  ({sum(1 for d in mid_data if d["subject"]==s)}개)')
                 ms_items = [d for d in mid_data if d['subject'] == ms_sel]
                 dl_btn(f'⬇ {ms_sel} ({len(ms_items)}개)', ms_items, f'중학교_{ms_sel}_성취기준', 'dl_mid_sub')
+
+        if sel_data:
+            st.markdown('**선택**')
+            with st.container(border=True):
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    st.caption(f'전체 {len(sel_data)}개')
+                    dl_btn('⬇ 선택 전체', sel_data, '선택_성취기준_전체', 'dl_sel_all')
+                with c2:
+                    sel_subs = sorted(set(d['subject'] for d in sel_data))
+                    sel_sub_sel = st.selectbox('과목', sel_subs, key='dl_sel_sub_sel',
+                                               format_func=lambda s: f'{s}  ({sum(1 for d in sel_data if d["subject"]==s)}개)')
+                    sel_sub_items = [d for d in sel_data if d['subject'] == sel_sub_sel]
+                    dl_btn(f'⬇ {sel_sub_sel} ({len(sel_sub_items)}개)', sel_sub_items, f'선택_{sel_sub_sel}_성취기준', 'dl_sel_sub')
+
+        if lofl_data:
+            st.markdown('**(선택) 생활 외국어**')
+            with st.container(border=True):
+                c1, c2 = st.columns([1, 2])
+                with c1:
+                    st.caption(f'전체 {len(lofl_data)}개')
+                    dl_btn('⬇ 생활 외국어 전체', lofl_data, '생활외국어_성취기준_전체', 'dl_lofl_all')
+                with c2:
+                    lofl_subs = sorted(set(d['subject'] for d in lofl_data))
+                    lofl_sel  = st.selectbox('과목', lofl_subs, key='dl_lofl_sub_sel',
+                                             format_func=lambda s: f'{s}  ({sum(1 for d in lofl_data if d["subject"]==s)}개)')
+                    lofl_items = [d for d in lofl_data if d['subject'] == lofl_sel]
+                    dl_btn(f'⬇ {lofl_sel} ({len(lofl_items)}개)', lofl_items, f'생활외국어_{lofl_sel}_성취기준', 'dl_lofl_sub')
 
         st.markdown('**고등학교**')
         with st.container(border=True):
@@ -868,27 +902,7 @@ with tab_download:
                 dl_btn(f'⬇ {hs_sub_sel} ({len(sub_items)}개)', sub_items,
                        f'고등학교_{hs_area2}_{hs_sub_sel}_성취기준', 'dl_high_sub')
 
-    # ── 선택 과목 ────────────────────────────────────────
-    with dl_tab_select:
-        for lv in ['선택', '생활 외국어']:
-            lv_data = [d for d in data if d['level'] == lv]
-            if not lv_data:
-                continue
-            st.markdown(f'**{lv}**')
-            with st.container(border=True):
-                c1, c2 = st.columns([1, 2])
-                with c1:
-                    st.caption(f'전체 {len(lv_data)}개')
-                    dl_btn(f'⬇ {lv} 전체', lv_data, f'{lv}_성취기준_전체', f'dl_{lv}_all')
-                with c2:
-                    subs_lv = sorted(set(d['subject'] for d in lv_data))
-                    sel_lv  = st.selectbox('과목', subs_lv, key=f'dl_{lv}_sel',
-                                           format_func=lambda s: f'{s}  ({sum(1 for d in lv_data if d["subject"]==s)}개)')
-                    sel_items = [d for d in lv_data if d['subject'] == sel_lv]
-                    dl_btn(f'⬇ {sel_lv} ({len(sel_items)}개)', sel_items,
-                           f'{lv}_{sel_lv}_성취기준', f'dl_{lv}_sub')
-
-    # ── 계열 ────────────────────────────────────────────
+    # ── 계열 선택 과목 ───────────────────────────────────
     with dl_tab_track:
         track_levels = [l for l in ['과학 계열', '체육 계열', '예술 계열']
                         if any(d['level'] == l for d in data)]
@@ -896,9 +910,9 @@ with tab_download:
         with col_t1:
             track_all = [d for d in data if d['level'] in track_levels]
             st.caption(f'전체 {len(track_all)}개')
-            dl_btn('⬇ 계열 전체', track_all, '계열_성취기준_전체', 'dl_track_all')
+            dl_btn('⬇ 계열 선택 과목 전체', track_all, '계열선택과목_성취기준_전체', 'dl_track_all')
         with col_t2:
-            sel_track = st.selectbox('계열', track_levels, key='dl_track_sel',
+            sel_track = st.selectbox('계열 선택 과목', track_levels, key='dl_track_sel',
                                      format_func=lambda l: f'{l}  ({sum(1 for d in data if d["level"]==l)}개)')
             track_data = [d for d in data if d['level'] == sel_track]
             subs_tr    = sorted(set(d['subject'] for d in track_data))
@@ -936,8 +950,7 @@ with st.sidebar:
     st.markdown('### 📥 빠른 다운로드')
     dl_btn('⬇ 중학교 전체', [d for d in data if d['level']=='중학교'], '중학교_성취기준_전체', 'sb_dl_mid')
     dl_btn('⬇ 고등학교 전체', [d for d in data if d['level']=='고등학교'], '고등학교_성취기준_전체', 'sb_dl_high')
-    dl_btn('⬇ 선택 과목 전체', [d for d in data if d['level'] in ('선택','생활 외국어')], '선택과목_성취기준_전체', 'sb_dl_sel')
-    dl_btn('⬇ 계열 전체', [d for d in data if LEVEL_GROUP.get(d['level'])=='계열'], '계열_성취기준_전체', 'sb_dl_track')
+    dl_btn('⬇ 계열 선택 과목 전체', [d for d in data if LEVEL_GROUP.get(d['level'])=='계열 선택 과목'], '계열선택과목_성취기준_전체', 'sb_dl_track')
     dl_btn('⬇ 전문교과 전체', [d for d in data if LEVEL_GROUP.get(d['level'])=='전문교과'], '전문교과_성취기준_전체', 'sb_dl_voc')
     dl_btn('⬇ 전체', data, '2022개정_성취기준_전체', 'sb_dl_all')
 
