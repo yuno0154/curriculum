@@ -113,7 +113,7 @@ def get_subject_name(area, code):
 #  2. 데이터 로드 & 인덱스 구축
 #  data_size를 캐시 키로 사용 — data.json 변경 시 자동 갱신
 # ─────────────────────────────────────────────────────────
-@st.cache_data(show_spinner='데이터 로드 중...')
+@st.cache_resource(show_spinner='데이터 로드 중...')
 def build_index(data_size: int = 0):  # data_size는 캐시 키 전용 — _ 접두사 금지
     """data.json을 읽고 렌더링용 인덱스를 구축 (캐시됨)."""
     with open('data.json', encoding='utf-8') as f:
@@ -446,15 +446,16 @@ _data_size = os.path.getsize('data.json')
 data, _gc, _by_level, _hs_tree, _lv_counts = build_index(_data_size)
 
 def get_stmt(item):
-    return st.session_state.edits.get(item['code'], {}).get('statement', item['statement'])
+    edits = getattr(st.session_state, 'edits', {})
+    return edits.get(item['code'], {}).get('statement', item['statement'])
 
 def is_edited(code):
-    return code in st.session_state.edits
+    return code in getattr(st.session_state, 'edits', {})
 
 # ─────────────────────────────────────────────────────────
 #  5. 헤더
 # ─────────────────────────────────────────────────────────
-edited_cnt = len(st.session_state.edits)
+edited_cnt = len(getattr(st.session_state, 'edits', {}))
 
 # _gc, _by_level, _hs_tree, _lv_counts 는 build_index()에서 사전 계산됨
 
