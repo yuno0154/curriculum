@@ -1,0 +1,16 @@
+# 가상환경
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# PDF 원본 파일 (용량 크고 저작권 문제)
+achivement_files/
+교육과정문서/
+
+# 엑셀 출력물 (data.json으로 대체)
+*.xlsx
+output.txt
+
+# 로컬 개발용
+.streamlit/secrets.toml
