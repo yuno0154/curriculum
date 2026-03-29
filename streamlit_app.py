@@ -178,33 +178,36 @@ html, body, .stApp {
 
 /* ── 헤더 카드 ─────────────────────────────────────── */
 .hero-wrap {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    background: #ffffff;
     border-radius: 20px;
-    padding: 2.2rem 2.5rem 1.8rem;
+    padding: 2rem 2.5rem 1.6rem;
     margin-bottom: 1.8rem;
     text-align: center;
-    box-shadow: 0 8px 32px rgba(99,102,241,0.25);
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid #6366f1;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
 }
 .hero-title {
-    font-size: 2rem;
+    font-size: 1.9rem;
     font-weight: 900;
-    color: #ffffff;
     letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     margin-bottom: 0.4rem;
     line-height: 1.25;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .hero-sub {
-    color: rgba(255,255,255,0.85);
+    color: #64748b;
     font-size: 0.95rem;
     font-weight: 500;
     margin-bottom: 0.75rem;
 }
 .hero-author {
     display: inline-block;
-    background: rgba(255,255,255,0.22);
-    border: 1px solid rgba(255,255,255,0.4);
-    color: #ffffff;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #4338ca;
     font-size: 0.82rem;
     font-weight: 700;
     padding: 0.3rem 1rem;
@@ -215,19 +218,19 @@ html, body, .stApp {
     display: flex;
     justify-content: center;
     gap: 0.75rem;
-    margin-top: 1.1rem;
+    margin-top: 1rem;
     flex-wrap: wrap;
 }
 .stat-item {
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 0.4rem 1.1rem;
     font-size: 0.83rem;
-    color: rgba(255,255,255,0.9);
+    color: #475569;
     font-weight: 500;
 }
-.stat-item b { color: #ffffff; font-weight: 800; }
+.stat-item b { color: #4f46e5; font-weight: 800; }
 
 /* ── 탭 ────────────────────────────────────────────── */
 div[data-baseweb="tab-list"] {
