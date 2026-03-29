@@ -159,88 +159,207 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* 전체 배경 */
-    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
-    .block-container { padding-top: 1.5rem; max-width: 1100px; }
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap');
 
-    /* 헤더 */
-    .hero-wrap {
-        background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1));
-        border: 1px solid rgba(99,102,241,0.3);
-        border-radius: 16px;
-        padding: 2rem 2.5rem 1.5rem;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-    .hero-title {
-        font-size: 2.2rem;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-        background: linear-gradient(135deg, #818cf8, #ec4899);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.4rem;
-        line-height: 1.2;
-    }
-    .hero-sub {
-        color: #94a3b8;
-        font-size: 0.95rem;
-        margin-bottom: 0.6rem;
-    }
-    .hero-author {
-        display: inline-block;
-        background: rgba(99,102,241,0.15);
-        border: 1px solid rgba(99,102,241,0.3);
-        color: #a5b4fc;
-        font-size: 0.82rem;
-        font-weight: 600;
-        padding: 0.25rem 0.9rem;
-        border-radius: 20px;
-    }
-    .hero-stats {
-        display: flex;
-        justify-content: center;
-        gap: 1.5rem;
-        margin-top: 1rem;
-        flex-wrap: wrap;
-    }
-    .stat-item {
-        background: rgba(30,41,59,0.6);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 10px;
-        padding: 0.4rem 1rem;
-        font-size: 0.85rem;
-        color: #cbd5e1;
-    }
-    .stat-item b { color: #818cf8; }
+/* ── 전체 배경 & 폰트 ─────────────────────────────── */
+html, body, .stApp {
+    background: #f4f6fb !important;
+    font-family: 'Pretendard', -apple-system, sans-serif !important;
+    color: #1e293b !important;
+}
+.block-container { padding-top: 1.2rem !important; max-width: 1100px !important; }
 
-    /* 목록 */
-    .code-cell {
-        font-family: 'Courier New', monospace;
-        font-weight: 700;
-        color: #818cf8;
-        font-size: 0.82rem;
-        white-space: nowrap;
-        background: rgba(99,102,241,0.1);
-        padding: 0.2rem 0.5rem;
-        border-radius: 5px;
-        display: inline-block;
-    }
-    .stmt-cell { font-size: 0.95rem; line-height: 1.75; color: #e2e8f0; }
-    .edited-mark { color: #f472b6; font-size: 0.75rem; }
-    div[data-testid="stExpander"] summary { font-size: 0.85rem; }
+/* 사이드바 */
+[data-testid="stSidebar"] {
+    background: #ffffff !important;
+    border-right: 1px solid #e2e8f0 !important;
+}
+[data-testid="stSidebar"] * { color: #334155 !important; }
 
-    /* 구분선 얇게 */
-    hr { border-color: rgba(255,255,255,0.06) !important; margin: 0.4rem 0 !important; }
+/* ── 헤더 카드 ─────────────────────────────────────── */
+.hero-wrap {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    border-radius: 20px;
+    padding: 2.2rem 2.5rem 1.8rem;
+    margin-bottom: 1.8rem;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.25);
+}
+.hero-title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.4rem;
+    line-height: 1.25;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.hero-sub {
+    color: rgba(255,255,255,0.85);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+}
+.hero-author {
+    display: inline-block;
+    background: rgba(255,255,255,0.22);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+}
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.1rem;
+    flex-wrap: wrap;
+}
+.stat-item {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 10px;
+    padding: 0.4rem 1.1rem;
+    font-size: 0.83rem;
+    color: rgba(255,255,255,0.9);
+    font-weight: 500;
+}
+.stat-item b { color: #ffffff; font-weight: 800; }
 
-    /* 탭 */
-    div[data-baseweb="tab-list"] {
-        background: rgba(30,41,59,0.5);
-        border-radius: 10px;
-        padding: 0.2rem;
-        gap: 0.2rem;
-    }
-    div[data-baseweb="tab"] { border-radius: 8px; font-weight: 600; }
+/* ── 탭 ────────────────────────────────────────────── */
+div[data-baseweb="tab-list"] {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 0.25rem;
+    gap: 0.2rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+div[data-baseweb="tab"] {
+    border-radius: 9px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #64748b !important;
+}
+div[data-baseweb="tab"][aria-selected="true"] {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+}
+button[data-baseweb="tab"]:hover { background: #f1f5f9 !important; }
+
+/* ── 성취기준 코드 배지 ──────────────────────────────── */
+.code-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #4f46e5;
+    font-size: 0.8rem;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    padding: 0.22rem 0.55rem;
+    border-radius: 6px;
+    display: inline-block;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+/* ── 성취기준 진술문 ─────────────────────────────────── */
+.stmt-cell {
+    font-size: 0.96rem;
+    line-height: 1.8;
+    color: #1e293b;
+    font-weight: 400;
+}
+
+/* ── 구분선 ─────────────────────────────────────────── */
+hr { border-color: #e2e8f0 !important; margin: 0.5rem 0 !important; }
+
+/* ── 섹션 제목 ──────────────────────────────────────── */
+h3 { color: #1e293b !important; font-weight: 800 !important; letter-spacing: -0.02em; }
+h4 { color: #374151 !important; font-weight: 700 !important; }
+
+/* ── selectbox / radio / input ──────────────────────── */
+div[data-testid="stSelectbox"] > div > div,
+div[data-testid="stTextInput"] input {
+    background: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    color: #1e293b !important;
+    font-size: 0.93rem !important;
+}
+div[data-testid="stSelectbox"] > div > div:focus-within,
+div[data-testid="stTextInput"] input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+
+/* ── 버튼 ────────────────────────────────────────────── */
+div[data-testid="stDownloadButton"] button,
+div[data-testid="stButton"] button {
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    border: none !important;
+    transition: all 0.2s !important;
+}
+div[data-testid="stDownloadButton"] button {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.3) !important;
+}
+div[data-testid="stDownloadButton"] button:hover {
+    box-shadow: 0 4px 16px rgba(99,102,241,0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 성공/정보 메시지 ────────────────────────────────── */
+div[data-testid="stSuccess"] { border-radius: 10px !important; }
+div[data-testid="stInfo"]    { border-radius: 10px !important; }
+
+/* ── expander ────────────────────────────────────────── */
+div[data-testid="stExpander"] {
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+div[data-testid="stExpander"] summary {
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+}
+
+/* ── metric ─────────────────────────────────────────── */
+div[data-testid="stMetric"] {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+div[data-testid="stMetricValue"] { color: #4f46e5 !important; font-weight: 800 !important; }
+div[data-testid="stMetricLabel"] { color: #64748b !important; font-weight: 600 !important; }
+
+/* ── 다운로드 탭 카드 ────────────────────────────────── */
+.dl-section {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.dl-section-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -552,71 +671,73 @@ with tab_keyword:
 #  탭 3: 엑셀 다운로드
 # ════════════════════════════════════════════════════════
 with tab_download:
-    st.markdown('#### 📥 성취기준 엑셀 다운로드')
-    st.caption('수정된 성취기준이 있으면 수정본이 반영됩니다.')
-    st.divider()
+    st.markdown("""
+    <div style="background:#eef2ff;border-left:4px solid #6366f1;border-radius:0 10px 10px 0;
+                padding:0.8rem 1.2rem;margin-bottom:1.5rem;color:#3730a3;font-weight:600;font-size:0.9rem;">
+        📌 수정된 성취기준이 있으면 수정본이 자동 반영됩니다.
+    </div>""", unsafe_allow_html=True)
 
-    # ── 중학교 ─────────────────────────────────────────
-    st.markdown('### 🏫 중학교')
-    mid_data = [d for d in data if d['level'] == '중학교']
-
-    col_m1, col_m2 = st.columns([1, 2])
-    with col_m1:
-        dl_btn('⬇ 중학교 전체', mid_data, '중학교_성취기준_전체', 'dl_mid_all')
-
-    with col_m2:
-        ms_subs = sorted(set(d['subject'] for d in mid_data))
-        ms_sel  = st.selectbox('과목 선택', ms_subs, key='dl_ms_sel',
-                               format_func=lambda s: f'{s}  ({sum(1 for d in mid_data if d["subject"]==s)}개)')
-        ms_items = [d for d in mid_data if d['subject'] == ms_sel]
-        dl_btn(f'⬇ {ms_sel}', ms_items, f'중학교_{ms_sel}_성취기준', 'dl_mid_sub')
-
-    st.divider()
-
-    # ── 고등학교 ────────────────────────────────────────
-    st.markdown('### 🏛 고등학교')
+    mid_data  = [d for d in data if d['level'] == '중학교']
     high_data = [d for d in data if d['level'] == '고등학교']
 
-    col_h1, col_h2, col_h3 = st.columns(3)
+    # ── 중학교 ─────────────────────────────────────────
+    st.markdown("""<div class="dl-section-title">🏫 중학교</div>""", unsafe_allow_html=True)
+    with st.container(border=True):
+        col_m1, col_m2 = st.columns([1, 2])
+        with col_m1:
+            st.caption(f'전체 {len(mid_data)}개')
+            dl_btn('⬇ 중학교 전체 다운로드', mid_data, '중학교_성취기준_전체', 'dl_mid_all')
+        with col_m2:
+            ms_subs = sorted(set(d['subject'] for d in mid_data))
+            ms_sel  = st.selectbox('과목 선택', ms_subs, key='dl_ms_sel',
+                                   format_func=lambda s: f'{s}  ({sum(1 for d in mid_data if d["subject"]==s)}개)')
+            ms_items = [d for d in mid_data if d['subject'] == ms_sel]
+            dl_btn(f'⬇ {ms_sel} 다운로드 ({len(ms_items)}개)', ms_items,
+                   f'중학교_{ms_sel}_성취기준', 'dl_mid_sub')
 
-    # 전체
-    with col_h1:
-        st.markdown('**전체**')
-        dl_btn('⬇ 고등학교 전체', high_data, '고등학교_성취기준_전체', 'dl_high_all')
+    st.markdown('<div style="height:1rem"></div>', unsafe_allow_html=True)
 
-    # 교과별
-    with col_h2:
-        st.markdown('**교과별**')
+    # ── 고등학교 ────────────────────────────────────────
+    st.markdown("""<div class="dl-section-title">🏛 고등학교</div>""", unsafe_allow_html=True)
+    with st.container(border=True):
+        col_h1, col_h2, col_h3 = st.columns(3)
         hs_areas = sorted(set(d['subject'] for d in high_data))
         area_cnt  = {a: sum(1 for d in high_data if d['subject'] == a) for a in hs_areas}
-        hs_area_sel = st.selectbox('교과 선택', hs_areas, key='dl_area_sel',
-                                   format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
-        area_items = [d for d in high_data if d['subject'] == hs_area_sel]
-        dl_btn(f'⬇ {hs_area_sel}', area_items,
-               f'고등학교_{hs_area_sel}_성취기준', 'dl_high_area')
 
-    # 과목별
-    with col_h3:
-        st.markdown('**과목별**')
-        hs_area2 = st.selectbox('교과', hs_areas, key='dl_area2_sel',
-                                format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
-        sub_names2 = sorted(set(
-            get_subject_name(d['subject'], d['code'])
-            for d in high_data if d['subject'] == hs_area2
-        ))
-        sub_cnt2 = {
-            sn: sum(1 for d in high_data
-                    if d['subject'] == hs_area2
-                    and get_subject_name(d['subject'], d['code']) == sn)
-            for sn in sub_names2
-        }
-        hs_sub_sel = st.selectbox('과목', sub_names2, key='dl_sub_sel',
-                                  format_func=lambda s: f'{s}  ({sub_cnt2[s]}개)')
-        sub_items = [d for d in high_data
-                     if d['subject'] == hs_area2
-                     and get_subject_name(d['subject'], d['code']) == hs_sub_sel]
-        dl_btn(f'⬇ {hs_sub_sel}', sub_items,
-               f'고등학교_{hs_area2}_{hs_sub_sel}_성취기준', 'dl_high_sub')
+        with col_h1:
+            st.caption(f'전체 {len(high_data)}개')
+            dl_btn('⬇ 고등학교 전체 다운로드', high_data,
+                   '고등학교_성취기준_전체', 'dl_high_all')
+
+        with col_h2:
+            st.caption('교과별')
+            hs_area_sel = st.selectbox('교과 선택', hs_areas, key='dl_area_sel',
+                                       format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
+            area_items = [d for d in high_data if d['subject'] == hs_area_sel]
+            dl_btn(f'⬇ {hs_area_sel} ({len(area_items)}개)', area_items,
+                   f'고등학교_{hs_area_sel}_성취기준', 'dl_high_area')
+
+        with col_h3:
+            st.caption('과목별')
+            hs_area2 = st.selectbox('교과', hs_areas, key='dl_area2_sel',
+                                    format_func=lambda a: f'{a}  ({area_cnt[a]}개)')
+            sub_names2 = sorted(set(
+                get_subject_name(d['subject'], d['code'])
+                for d in high_data if d['subject'] == hs_area2
+            ))
+            sub_cnt2 = {
+                sn: sum(1 for d in high_data
+                        if d['subject'] == hs_area2
+                        and get_subject_name(d['subject'], d['code']) == sn)
+                for sn in sub_names2
+            }
+            hs_sub_sel = st.selectbox('과목', sub_names2, key='dl_sub_sel',
+                                      format_func=lambda s: f'{s}  ({sub_cnt2[s]}개)')
+            sub_items = [d for d in high_data
+                         if d['subject'] == hs_area2
+                         and get_subject_name(d['subject'], d['code']) == hs_sub_sel]
+            dl_btn(f'⬇ {hs_sub_sel} ({len(sub_items)}개)', sub_items,
+                   f'고등학교_{hs_area2}_{hs_sub_sel}_성취기준', 'dl_high_sub')
 
 # ─────────────────────────────────────────────────────────
 #  8. 사이드바: 편집 현황 + 빠른 다운로드
