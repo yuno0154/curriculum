@@ -295,7 +295,12 @@ with tab_subject:
 
     if level == '중학교':
         subjects = sorted(set(d['subject'] for d in data if d['level'] == '중학교'))
-        subject = st.selectbox('과목', subjects, key='ms_subject')
+        ms_counts = {s: sum(1 for d in data if d['level'] == '중학교' and d['subject'] == s)
+                     for s in subjects}
+        subject = st.selectbox(
+            '과목', subjects, key='ms_subject',
+            format_func=lambda s: f'{s}  ({ms_counts[s]}개)'
+        )
         items_to_show = sorted(
             [d for d in data if d['level'] == '중학교' and d['subject'] == subject],
             key=lambda x: x['code']
@@ -304,15 +309,29 @@ with tab_subject:
 
     else:  # 고등학교
         areas = sorted(set(d['subject'] for d in data if d['level'] == '고등학교'))
+        area_counts = {a: sum(1 for d in data if d['level'] == '고등학교' and d['subject'] == a)
+                       for a in areas}
         col_a, col_b = st.columns(2)
         with col_a:
-            area = st.selectbox('교과', areas, key='hs_area')
+            area = st.selectbox(
+                '교과', areas, key='hs_area',
+                format_func=lambda a: f'{a}  ({area_counts[a]}개)'
+            )
         with col_b:
             sub_names = sorted(set(
                 get_subject_name(d['subject'], d['code'])
                 for d in data if d['level'] == '고등학교' and d['subject'] == area
             ))
-            sub_name = st.selectbox('과목', sub_names, key='hs_sub')
+            sub_counts = {
+                sn: sum(1 for d in data
+                        if d['level'] == '고등학교' and d['subject'] == area
+                        and get_subject_name(d['subject'], d['code']) == sn)
+                for sn in sub_names
+            }
+            sub_name = st.selectbox(
+                '과목', sub_names, key='hs_sub',
+                format_func=lambda s: f'{s}  ({sub_counts[s]}개)'
+            )
 
         items_to_show = sorted(
             [d for d in data

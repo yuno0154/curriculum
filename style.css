@@ -71,6 +71,17 @@ h1 span { background: linear-gradient(135deg, var(--primary), #ec4899); -webkit-
 }
 .subject-chip:hover { color: white; border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
 .subject-chip.active { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+.chip-count {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.05rem 0.4rem;
+    border-radius: 10px;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+}
+.subject-chip.active .chip-count { background: rgba(255,255,255,0.25); }
 
 /* ── 아코디언 ─────────────────────────────────────────── */
 .accordion-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem; }

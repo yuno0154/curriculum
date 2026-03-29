@@ -111,9 +111,10 @@ function renderMiddleSubjects() {
   wrap.innerHTML = '';
   const subjects = [...new Set(allData.filter(d=>d.level==='중학교').map(d=>d.subject))].sort();
   subjects.forEach(sub => {
+    const cnt = allData.filter(d=>d.level==='중학교'&&d.subject===sub).length;
     const btn = document.createElement('button');
     btn.className = 'subject-chip';
-    btn.textContent = sub;
+    btn.innerHTML = `${sub} <span class="chip-count">${cnt}</span>`;
     btn.addEventListener('click', () => {
       clearChipSelection(); btn.classList.add('active');
       const items = sortByCode(allData.filter(d=>d.level==='중학교'&&d.subject===sub));
@@ -149,9 +150,10 @@ function renderHighSubjects() {
     const body = document.createElement('div');
     body.className = 'accordion-body';
     names.forEach(sn => {
+      const cnt = allData.filter(d=>d.level==='고등학교'&&d.subject===area&&getSubjectName(d.subject,d.code)===sn).length;
       const btn = document.createElement('button');
       btn.className = 'subject-chip';
-      btn.textContent = sn;
+      btn.innerHTML = `${sn} <span class="chip-count">${cnt}</span>`;
       btn.addEventListener('click', () => {
         clearChipSelection(); btn.classList.add('active');
         const items = sortByCode(allData.filter(d =>
