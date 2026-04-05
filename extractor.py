@@ -132,13 +132,28 @@ def extract_from_pdf(path, level, pdf_type):
         if pending_code and pending_parts:
             stmt = clean_statement(' '.join(pending_parts))
             if len(stmt) > 5 and pending_code not in seen_codes:
-                results.append({
-                    'level': current_level,
-                    'subject': current_subject,
-                    'code': f'[{pending_code}]',
-                    'statement': stmt,
-                })
-                seen_codes.add(pending_code)
+                # ── 특정 과목에 다른 과목 코드가 혼입된 경우 필터링 ───────────────────
+                # 특히 '디지털과 직업 생활'에 공화, 기계 등이 들어가는 현상 수정
+                exclude_combos = [
+                    ('디지털과 직업 생활', '공화'),
+                    ('디지털과 직업 생활', '기계'),
+                ]
+                is_invalid = any(
+                    subj == current_subject and pending_code.startswith(prefix)
+                    for subj, prefix in exclude_combos
+                )
+
+                if not is_invalid:
+                    results.append({
+                        'level': current_level,
+                        'subject': current_subject,
+                        'code': f'[{pending_code}]',
+                        'statement': stmt,
+                    })
+                    seen_codes.add(pending_code)
+                else:
+                    log(f"    [필터] 제외된 매칭 불일치 성취기준: {current_subject} - {pending_code}")
+
         pending_code = None
         pending_parts = []
 
