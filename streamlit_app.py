@@ -4,7 +4,7 @@ streamlit_app.py — 성취기준 검색 & 편집 (Streamlit Cloud 버전)
 """
 
 import streamlit as st
-import json, re, requests, base64, io, os
+import json, re, requests, base64, io, os, sqlite3
 from datetime import datetime
 import pandas as pd
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
@@ -148,6 +148,134 @@ def build_index(data_mtime: float):  # data_mtime은 캐시 키 전용 — _ 접
     lv_counts = {lv: len(items) for lv, items in by_level.items()}
 
     return raw, gc, by_level, hs_tree, lv_counts
+
+# ─────────────────────────────────────────────────────────
+#  2-2. FTS5 검색 인덱스
+# ─────────────────────────────────────────────────────────
+FTS_DB = 'search_index.db'
+FTS_TABLE = 'achievement_fts'
+
+def _get_fts_conn():
+    """FTS5 SQLite 커넥션 반환 (캐시됨)"""
+    return sqlite3.connect(FTS_DB, check_same_thread=False)
+
+@st.cache_resource(show_spinner='검색 인덱스 구축 중...')
+def build_fts_index(data_mtime: float):
+    """data.json에서 FTS5 인덱스 구축 (캐시됨)"""
+    # PK 인덱스용 원본 조회 테이블
+    with open('data.json', encoding='utf-8') as f:
+        raw = json.load(f)
+
+    conn = _get_fts_conn()
+    cur = conn.cursor()
+
+    # 원본 데이터 테이블 (FTS 결과から원본レコード復元用)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS achievement_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE,
+            level TEXT,
+            subject TEXT,
+            subject_name TEXT,
+            statement TEXT,
+            statement_lower TEXT,
+            raw_json TEXT
+        )
+    ''')
+
+    # FTS5 가상 테이블
+    cur.execute(f'''
+        CREATE VIRTUAL TABLE IF NOT EXISTS {FTS_TABLE} USING fts5(
+            code,
+            statement_lower,
+            subject_name,
+            content=achievement_data,
+            content_rowid=id
+        )
+    ''')
+
+    # 기존 데이터 삭제
+    cur.execute('DELETE FROM achievement_data')
+    cur.execute(f"DELETE FROM {FTS_TABLE}")
+
+    # 대량 삽입
+    records = []
+    for d in raw:
+        stmt = d.get('statement', '')
+        level = d.get('level', '')
+        subject = d.get('subject', '')
+        code = d.get('code', '')
+        # 고등학교 과목명
+        if level == '고등학교':
+            sn = get_subject_name(subject, code)
+        else:
+            sn = subject
+        records.append((
+            code, level, subject, sn,
+            stmt, stmt.lower() if stmt else '',
+            json.dumps(d, ensure_ascii=False)
+        ))
+
+    cur.executemany(
+        'INSERT INTO achievement_data(code, level, subject, subject_name, statement, statement_lower, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        records
+    )
+    conn.commit()
+
+    # FTS 인덱스 Rebuild
+    cur.execute(f"INSERT INTO {FTS_TABLE}({FTS_TABLE}) VALUES ('rebuild')")
+    conn.commit()
+    conn.close()
+    return len(records)
+
+def search_fts(query: str, page: int = 1, per_page: int = 50) -> tuple[list[dict], int]:
+    """
+    FTS5로高速 검색. page 시작 1.
+    Returns: (results, total_count)
+    """
+    if not query or len(query.strip()) < 2:
+        return [], 0
+
+    conn = _get_fts_conn()
+    cur = conn.cursor()
+
+    # FTS5 BM25 쿼리 — statement_lower만 검색
+    # 부분 일치을 위해 * 트릭使用
+    q_lower = query.lower().strip()
+    fts_query = f'"{q_lower}"*'
+
+    try:
+        # FTS5 MATCH → 원본 테이블 join
+        cur.execute(f'''
+            SELECT ad.raw_json
+            FROM {FTS_TABLE} fts
+            JOIN achievement_data ad ON fts.rowid = ad.id
+            WHERE {FTS_TABLE} MATCH ?
+            LIMIT 10000
+        ''', (fts_query,))
+        rows = cur.fetchall()
+    except Exception:
+        # FTS 쿼리 에러 시 폴백: LIKE 검색
+        cur.execute(
+            'SELECT raw_json FROM achievement_data WHERE statement_lower LIKE ? OR code LIKE ? LIMIT 10000',
+            (f'%{q_lower}%', f'%{q_lower}%')
+        )
+        rows = cur.fetchall()
+
+    conn.close()
+
+    results = []
+    for (raw_json,) in rows:
+        d = json.loads(raw_json)
+        results.append(d)
+
+    # 코드순 정렬
+    results.sort(key=lambda x: x['code'])
+
+    total = len(results)
+    start = (page - 1) * per_page
+    end = start + per_page
+    return results[start:end], total
 
 def _gh_headers():
     token = st.secrets.get('GITHUB_TOKEN', '')
@@ -450,6 +578,7 @@ if 'edits' not in st.session_state:
 
 _data_mtime = os.path.getmtime('data.json')
 data, _gc, _by_level, _hs_tree, _lv_counts = build_index(_data_mtime)
+fts_count = build_fts_index(_data_mtime)  # FTS5 인덱스 구축 (캐시됨)
 
 def get_stmt(item):
     edits = getattr(st.session_state, 'edits', {})
@@ -771,40 +900,74 @@ with tab_keyword:
             st.info('과목명 키워드를 입력하면 일치하는 과목 목록이 표시됩니다.')
 
     elif search_mode == '성취기준 검색':
-        # ── 성취기준 키워드 검색 (기존 기능) ─────────────
-        q = query.lower()
-        filtered = sorted(
-            [d for d in data
-             if q in get_stmt(d).lower() or q in d['code'].lower()],
-            key=lambda x: x['code']
-        )
-        st.caption(f'총 **{len(filtered)}**개 성취기준 검색됨')
+        # ── FTS5 기반的高速 검색 ─────────────────────────────
+        if len(query.strip()) < 2:
+            st.info('2글자 이상 입력하세요.')
+        else:
+            search_page_key = 'search_page'
+            if search_page_key not in st.session_state:
+                st.session_state[search_page_key] = 1
 
-        groups: dict[str, list] = {}
-        for d in filtered:
-            if d['level'] == '고등학교':
-                sn  = get_subject_name(d['subject'], d['code'])
-                grp = f'[고등학교] {d["subject"]} › {sn}'
+            total_pages = 1
+            with st.spinner('검색 중...'):
+                results, total = search_fts(query, page=1, per_page=ITEMS_PER_PAGE)
+
+            if total == 0:
+                st.warning('검색 결과가 없습니다.')
             else:
-                grp = f'[{LEVEL_DISPLAY.get(d["level"], d["level"])}] {d["subject"]}'
-            groups.setdefault(grp, []).append(d)
+                total_pages = max(1, (total - 1) // ITEMS_PER_PAGE + 1)
+                current_page = st.session_state[search_page_key]
 
-        for grp_key, items in groups.items():
-            with st.expander(f'**{grp_key}** — {len(items)}개', expanded=True):
-                for item in items:
-                    stmt = get_stmt(item)
-                    highlighted = re.sub(
-                        f'({re.escape(query)})', r'**\1**', stmt, flags=re.IGNORECASE
+                st.caption(f'총 **{total}**개 성취기준 검색됨 (페이지 {current_page}/{total_pages})')
+
+                # ── 페이지네이션 컨트롤 ─────────────────────
+                col_p1, col_p2, col_p3 = st.columns([1, 1, 4])
+                with col_p1:
+                    if st.button('◀', key='fts_prev', disabled=(current_page <= 1)):
+                        st.session_state[search_page_key] = max(1, current_page - 1)
+                        st.rerun()
+                with col_p2:
+                    page = st.number_input(
+                        '페이지', 1, total_pages, current_page,
+                        key='fts_pager', label_visibility='collapsed'
                     )
-                    c1, c2 = st.columns([2, 8])
-                    with c1:
-                        mark = ' 🔵' if is_edited(item['code']) else ''
-                        st.markdown(
-                            f'<div class="code-cell">{item["code"]}{mark}</div>',
-                            unsafe_allow_html=True
-                        )
-                    with c2:
-                        st.markdown(highlighted)
+                    if page != current_page:
+                        st.session_state[search_page_key] = page
+                        st.rerun()
+                with col_p3:
+                    if st.button('▶', key='fts_next', disabled=(current_page >= total_pages)):
+                        st.session_state[search_page_key] = min(total_pages, current_page + 1)
+                        st.rerun()
+
+                # 실제 페이지 데이터取得
+                page_results, _ = search_fts(query, page=current_page, per_page=ITEMS_PER_PAGE)
+
+                # 그룹핑
+                groups: dict[str, list] = {}
+                for d in page_results:
+                    if d['level'] == '고등학교':
+                        sn  = get_subject_name(d['subject'], d['code'])
+                        grp = f'[고등학교] {d["subject"]} › {sn}'
+                    else:
+                        grp = f'[{LEVEL_DISPLAY.get(d["level"], d["level"])}] {d["subject"]}'
+                    groups.setdefault(grp, []).append(d)
+
+                for grp_key, items in groups.items():
+                    with st.expander(f'**{grp_key}** — {len(items)}개', expanded=True):
+                        for item in items:
+                            stmt = get_stmt(item)
+                            highlighted = re.sub(
+                                f'({re.escape(query)})', r'**\1**', stmt, flags=re.IGNORECASE
+                            )
+                            c1, c2 = st.columns([2, 8])
+                            with c1:
+                                mark = ' 🔵' if is_edited(item['code']) else ''
+                                st.markdown(
+                                    f'<div class="code-cell">{item["code"]}{mark}</div>',
+                                    unsafe_allow_html=True
+                                )
+                            with c2:
+                                st.markdown(highlighted)
 
     else:
         # ── 과목명 검색 ───────────────────────────────────
