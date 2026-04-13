@@ -217,7 +217,7 @@ def build_fts_index(data_mtime: float):
         ))
 
     cur.executemany(
-        'INSERT INTO achievement_data(code, level, subject, subject_name, statement, statement_lower, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR IGNORE INTO achievement_data(code, level, subject, subject_name, statement, statement_lower, raw_json) VALUES (?, ?, ?, ?, ?, ?, ?)',
         records
     )
     conn.commit()
