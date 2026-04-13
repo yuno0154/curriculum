@@ -11,6 +11,11 @@ from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # ─────────────────────────────────────────────────────────
+#  0. 상수
+# ─────────────────────────────────────────────────────────
+ITEMS_PER_PAGE = 50   # 페이지당 표시할 성취기준 수
+
+# ─────────────────────────────────────────────────────────
 #  1. 과목명 매핑
 # ─────────────────────────────────────────────────────────
 SUBJECT_MAP = {
@@ -111,11 +116,12 @@ def get_subject_name(area, code):
 
 # ─────────────────────────────────────────────────────────
 #  2. 데이터 로드 & 인덱스 구축
-#  data_size를 캐시 키로 사용 — data.json 변경 시 자동 갱신
+#  data_mtime을 캐시 키로 사용 — data.json 변경 시 자동 갱신
 # ─────────────────────────────────────────────────────────
-@st.cache_resource(show_spinner='데이터 로드 중...')
-def build_index(data_size: int = 0):  # data_size는 캐시 키 전용 — _ 접두사 금지
+@st.cache_data(ttl=3600, show_spinner='데이터 로드 중...')
+def build_index(data_mtime: float):  # data_mtime은 캐시 키 전용 — _ 접두사 금지
     """data.json을 읽고 렌더링용 인덱스를 구축 (캐시됨)."""
+    # 파일 수정 시간과 크기를 모두 캐시 키에 포함
     with open('data.json', encoding='utf-8') as f:
         raw = json.load(f)
 
@@ -442,8 +448,8 @@ div[data-testid="stMetricLabel"] { color: #64748b !important; font-weight: 600 !
 if 'edits' not in st.session_state:
     st.session_state.edits = load_edits_remote()
 
-_data_size = os.path.getsize('data.json')
-data, _gc, _by_level, _hs_tree, _lv_counts = build_index(_data_size)
+_data_mtime = os.path.getmtime('data.json')
+data, _gc, _by_level, _hs_tree, _lv_counts = build_index(_data_mtime)
 
 def get_stmt(item):
     edits = getattr(st.session_state, 'edits', {})
@@ -619,7 +625,38 @@ with tab_subject:
 
         st.markdown(f'#### {title}')
 
-        for item in items_to_show:
+        # ── 페이지네이션 ─────────────────────────────────────
+        total = len(items_to_show)
+        total_pages = max(1, (total - 1) // ITEMS_PER_PAGE + 1)
+        page_key = f'page_{level}_{subject}' if level else f'page_other_{subject}'
+        if page_key not in st.session_state:
+            st.session_state[page_key] = 1
+        current_page = st.session_state[page_key]
+
+        col_p1, col_p2, col_p3 = st.columns([1, 1, 4])
+        with col_p1:
+            if st.button('◀', key=f'prev_{page_key}', disabled=(current_page <= 1)):
+                st.session_state[page_key] = max(1, current_page - 1)
+                st.rerun()
+        with col_p2:
+            page = st.number_input(
+                '페이지', 1, total_pages, current_page,
+                key=f'pager_{page_key}', label_visibility='collapsed'
+            )
+            if page != current_page:
+                st.session_state[page_key] = page
+                st.rerun()
+        with col_p3:
+            if st.button('▶', key=f'next_{page_key}', disabled=(current_page >= total_pages)):
+                st.session_state[page_key] = min(total_pages, current_page + 1)
+                st.rerun()
+            st.caption(f'{total_pages}페이지 중 {current_page}페이지')
+
+        start_idx = (current_page - 1) * ITEMS_PER_PAGE
+        end_idx = start_idx + ITEMS_PER_PAGE
+        page_items = items_to_show[start_idx:end_idx]
+
+        for item in page_items:
             stmt   = get_stmt(item)
             edited = is_edited(item['code'])
 
@@ -661,10 +698,11 @@ with tab_subject:
                             else:
                                 st.session_state.edits.pop(item['code'], None)
 
-                            ok, msg = save_edits_remote(
-                                st.session_state.edits,
-                                f'성취기준 수정: {item["code"]}'
-                            )
+                            with st.spinner('저장 중...'):
+                                ok, msg = save_edits_remote(
+                                    st.session_state.edits,
+                                    f'성취기준 수정: {item["code"]}'
+                                )
                             st.session_state[f'edit_open_{item["code"]}'] = False
                             if ok:
                                 st.success(msg)
@@ -675,6 +713,10 @@ with tab_subject:
                     with bc2:
                         if st.button('취소', key=f'cancel_{item["code"]}'):
                             st.session_state[f'edit_open_{item["code"]}'] = False
+                            # 텍스트 영역 세션 상태 정리
+                            ta_key = f'ta_{item["code"]}'
+                            if ta_key in st.session_state:
+                                del st.session_state[ta_key]
                             st.rerun()
 
                     if edited:
@@ -683,11 +725,16 @@ with tab_subject:
                             st.caption(f'원본: {orig}')
                         if st.button('↩ 원본 복원', key=f'reset_{item["code"]}'):
                             st.session_state.edits.pop(item['code'], None)
-                            ok, msg = save_edits_remote(
-                                st.session_state.edits,
-                                f'성취기준 복원: {item["code"]}'
-                            )
+                            with st.spinner('복원 중...'):
+                                ok, msg = save_edits_remote(
+                                    st.session_state.edits,
+                                    f'성취기준 복원: {item["code"]}'
+                                )
                             st.session_state[f'edit_open_{item["code"]}'] = False
+                            if ok:
+                                st.success(msg)
+                            else:
+                                st.warning(f'로컬 복원은 됐으나 GitHub 연동 실패: {msg}')
                             st.rerun()
 
             st.divider()
